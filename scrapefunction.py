@@ -23,30 +23,12 @@ import urllib2
 from urllib2 import Request
 import datetime
 import re
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.converter import TextConverter
+from pdfminer.layout import LAParams
+from cStringIO import StringIO
 
 
-
-def get_text(url):
-    '''Input a URL from the arxiv (page of a list of papers), return a list of
-    parsed articles (list of strings)
-    '''
-
-    base_url = url
-    r = requests.get(base_url)
-    soup = BeautifulSoup(r.text, 'html.parser')
-    pdfs = soup.findAll(title = 'Download PDF')
-    links = [str(pdf).split()[1].strip('href="') for pdf in pdfs]
-    urls = ['http://arxiv.org'+ link for link in links]
-    articles = []
-    for url in urls:
-        articles.append(parsePDF(url))
-
-    titles = soup.findAll(class_="list-title")
-    title_list = []
-    for ix in range(len(titles)):
-        title_list.append(titles[ix].text)
-
-    return articles, title_list
 
 
 # Define a PDF parser function
@@ -83,13 +65,6 @@ def parsePDF(url):
         data =  retstr.getvalue()
     return data
 
-
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.converter import TextConverter
-from pdfminer.layout import LAParams
-from pdfminer.pdfpage import PDFPage
-from cStringIO import StringIO
-
 def convert_pdf_to_txt(path):
     '''Input a pdf file (on local disk), output the text of the file
     '''
@@ -116,6 +91,30 @@ def convert_pdf_to_txt(path):
     device.close()
     retstr.close()
     return text
+
+def get_text(url):
+    '''Input a URL from the arxiv (page of a list of papers), return a list of
+    parsed articles (list of strings)
+    '''
+
+    base_url = url
+    r = requests.get(base_url)
+    soup = BeautifulSoup(r.text, 'html.parser')
+    pdfs = soup.findAll(title = 'Download PDF')
+    links = [str(pdf).split()[1].strip('href="') for pdf in pdfs]
+    urls = ['http://arxiv.org'+ link for link in links]
+    articles = []
+    for url in urls:
+        articles.append(parsePDF(url))
+
+    titles = soup.findAll(class_="list-title")
+    title_list = []
+    for ix in range(len(titles)):
+        title_list.append(titles[ix].text)
+
+    return articles, title_list
+
+
 
 
 def clean_pdf_text(text):
@@ -172,13 +171,14 @@ def get_topics(url, num_topics):
     return M, topics
 
 
-def get_best_titles(M, index):
+def get_best_titles(M, index, num_articles):
     N=M.todense()
     Dists=np.zeros((N.shape[0], N.shape[0]))
     for ix in range(len(Dists)):
         for jx in range(len(Dists)):
             Dists[ix, jx]=cosine(N[ix], N[jx])
     distances = Dists[index]
-    best_five = np.argsort(distances)[1:6]
-    best_titles = [title_list[i] for i in best_five]
-    return best_titles
+    best_score_indices = np.argsort(distances)[1:num_articles]
+    best_scores = [np.around(distances[i],3) for i in best_score_indices]
+    best_titles = [title_list[i] for i in best_score_indices]
+    return best_titles, best_scores
