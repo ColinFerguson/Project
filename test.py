@@ -28,10 +28,10 @@ from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
 from cStringIO import StringIO
 import sys
-reload(sys)
-sys.setdefaultencoding("utf-8")
+#reload(sys)
+#sys.setdefaultencoding("utf-8")
 from nltk.stem import WordNetLemmatizer
-
+import multiprocessing
 
 # Define a PDF parser function
 def parsePDF(url):
@@ -105,9 +105,8 @@ def get_text(url):
     pdfs = soup.findAll(title = 'Download PDF')
     links = [str(pdf).split()[1].strip('href="') for pdf in pdfs]
     urls = ['http://arxiv.org'+ link for link in links]
-    articles = []
-    for url in urls:
-        articles.append(parsePDF(url))
+    pool = multiprocessing.Pool(processes=4)
+    articles = pool.map(parsePDF, urls)
 
     titles = soup.findAll(class_="list-title")
     title_list = []
@@ -127,11 +126,10 @@ def clean_pdf_text(text):
     S.update(letter for letter in string.lowercase)
     S.update(letter for letter in string.uppercase)
     S.update(digit for digit in string.digits)
-    snow = SnowballStemmer('english')
     new_text=[]
     for i in range(len(text)):
-        new_text.append([WordNetLemmatizer().lemmatize(word.lower()) for word in text[i].split() if (word[0] in S) and (word[-1] in S)\
-                    and (len(word)>3)])
+        new_text.append([word.lower() for word in text[i].split() if (word[0] in S) and (word[-1] in S)\
+                    and (len(word)>=3)])
 
     for i in range(len(new_text)):
         new_text[i] = ' '.join(new_text[i])
@@ -148,7 +146,7 @@ def math_stop():
                  'product', 'multiple', 'let', 'group', 'prime', 'log', 'limit', 'cid', 'result'\
                 'main', 'conjecture', 'case', 'suppose', 'function', 'assume', 'follows', \
                 'given', 'define', 'note', 'defined', 'class', 'proposition', 'function', 'set', \
-                 'primes', 'numbers','form', 'integers', 'curves', 'real'])
+                 'primes', 'numbers','form', 'integers', 'curves', 'real', 'using', 'following', 'obtain'])
     return list(Stop)
 
 
@@ -160,10 +158,11 @@ def get_topics(url, num_topics):
     text = clean_pdf_text(text)
 
     tfidf_math = TfidfVectorizer(max_features=100, stop_words=math_stop(), \
-                    ngram_range=(1, 1), decode_error='ignore')
+                    ngram_range=(2, 2), decode_error='ignore')
     M = tfidf_math.fit_transform(text)
 
     feature_names = tfidf_math.get_feature_names()
+    feature_names = [WordNetLemmatizer().lemmatize(word) for word in feature_names]
     nmf = NMF(n_components=num_topics)
     nmf.fit(M)
     topics = []
