@@ -68,6 +68,86 @@ def parsePDF(url):
         data =  retstr.getvalue()
     return data
 
+def parsePDF2(url):
+
+    '''parsePDF2 is an improvement of parsePDF because it adds waits
+    to avoid getting kicked off of the site you are scraping.  Also added
+    are the try/except blocks to deal with pdfs that won't open.'''
+
+    try:
+        open = urllib2.urlopen(Request(url[0])).read()
+
+        # Cast to StringIO object
+        from StringIO import StringIO
+        memory_file = StringIO(open)
+
+        # Create a PDF parser object associated with the StringIO object
+        parser = PDFParser(memory_file)
+
+        # Create a PDF document object that stores the document structure
+        document = PDFDocument(parser)
+
+        # Define parameters to the PDF device objet
+        rsrcmgr = PDFResourceManager()
+        retstr = StringIO()
+        laparams = LAParams()
+        codec = 'utf-8'
+
+        # Create a PDF device object
+        device = TextConverter(rsrcmgr, retstr, codec = codec, laparams = laparams)
+
+        # Create a PDF interpreter object
+        interpreter = PDFPageInterpreter(rsrcmgr, device)
+
+        # Process each page contained in the document
+        for page in PDFPage.create_pages(document):
+            interpreter.process_page(page)
+            data =  retstr.getvalue()
+        sl = random.randint(0,30)
+        #print "Time to sleep for {0} seconds".format(sl)
+        time.sleep(sl)
+        return data, url[0], url[1]
+
+    except:
+        x = random.randint(5,15)
+        #print "Didn't work, try again in {0} seconds".format(x)
+        time.sleep(x)
+        try:
+            open = urllib2.urlopen(Request(url[0])).read()
+
+            # Cast to StringIO object
+            from StringIO import StringIO
+            memory_file = StringIO(open)
+
+            # Create a PDF parser object associated with the StringIO object
+            parser = PDFParser(memory_file)
+
+            # Create a PDF document object that stores the document structure
+            document = PDFDocument(parser)
+
+            # Define parameters to the PDF device objet
+            rsrcmgr = PDFResourceManager()
+            retstr = StringIO()
+            laparams = LAParams()
+            codec = 'utf-8'
+
+            # Create a PDF device object
+            device = TextConverter(rsrcmgr, retstr, codec = codec, laparams = laparams)
+
+            # Create a PDF interpreter object
+            interpreter = PDFPageInterpreter(rsrcmgr, device)
+
+            # Process each page contained in the document
+            for page in PDFPage.create_pages(document):
+                interpreter.process_page(page)
+                data =  retstr.getvalue()
+            return data, url[0], url[1]
+        except:
+            #print "Sorry, can't get this paper"
+            time.sleep(random.randint(5,10))
+
+
+
 def convert_pdf_to_txt(path):
     '''Input a pdf file (on local disk), output the text of the file
     '''
@@ -99,30 +179,14 @@ def get_text(url):
     '''Input a URL from the arxiv (page of a list of papers), return a list of
     parsed articles (list of strings)
     '''
-
-    #session = requesocks.session()
-
-# #Use Tor for both HTTP and HTTPS
-    #session.proxies = {'http': 'socks5://127.0.0.1:9150', 'https': 'socks5://127.0.0.1:9150'}
-
-
-#http://lanl.arxiv.org/pdf/1508.00039.pdf
-
     base_url = url
     r = requests.get(base_url, headers={'User-agent': 'Mozilla/5.0'})
-    #print r.status_code
-    #r = session.get(base_url, headers={'User-agent': 'Mozilla/5.0'})
     print r.status_code
 
     soup = BeautifulSoup(r.text, 'html.parser')
     pdfs = soup.findAll(title = 'Download PDF')
     links = [str(pdf).split()[1].strip('href="') for pdf in pdfs]
     urls = ['http://lanl.arxiv.org'+ link for link in links]
-    #pool = multiprocessing.Pool(processes=4)
-    #articles = []
-    #for url in urls:
-    #    articles.append(parsePDF(url))
-    #    print len(articles)
 
     titles = soup.findAll(class_="list-title")
     title_list = []
@@ -131,6 +195,39 @@ def get_text(url):
     print r.status_code
     #return articles, title_list, urls
     return title_list, urls, links, pdfs
+
+
+def get_text2(url):
+    '''Input a URL from the arxiv (page of a list of papers), return a list of
+    parsed articles (list of strings).  get_text2 is better than get_text because
+    it implements parallel processing.
+    '''
+
+    base_url = url
+    r = requests.get(base_url, headers={'User-agent': 'Mozilla/5.0'})
+
+    print "Status: ", r.status_code
+
+    soup = BeautifulSoup(r.text, 'html.parser')
+    pdfs = soup.findAll(title = 'Download PDF')
+    links = [str(pdf).split()[1].strip('href="') for pdf in pdfs]
+    urls = ['http://lanl.arxiv.org'+ link for link in links]
+    titles = soup.findAll(class_="list-title")
+    title_list = []
+    for ix in range(len(titles)):
+        title_list.append(titles[ix].text)
+    url_title = zip(urls, title_list)
+
+    articles = []
+    failed = []
+    good_urls = []
+    pool = multiprocessing.Pool(processes=4)
+    articles = pool.map(parsePDF2, url_title)
+
+    print "Returned {0} articles".format(len(articles))
+    print "Status: ", r.status_code
+    return articles #, title_list, good_urls
+    #return title_list, urls, links, pdfs
 
 
 
@@ -246,3 +343,23 @@ def NT_sim(url):
             sim.append('<p> Similarity Score: {0} </p>'.format(y))
             sim.append(z)
         return header + '\n' + '\n'.join(sim)
+
+'''Script to scrape a given URL, and return the parsable articles.  Then
+take the good articles (good_arts) and append a label to them.  Iterate this
+over relevant urls to get the dataset.  get_text2 returns triples (text, url, title),
+so this script will make those into 4-tuples with the label on the end.'''
+
+arts = get_text2(url)
+bad_type = 0
+good_arts = []
+for ix in range(len(arts)):
+    if type(arts[ix]) == tuple:
+        good_type += 1
+        good_arts.append(arts[ix])
+    else:
+        bad_type += 1
+print "Good: ", good_type
+print "Good again: ", len(good_arts)
+print "Bad: ", bad_type
+for ix in range(len(good_arts)):
+    good_arts[ix] += (label,)
