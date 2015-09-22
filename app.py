@@ -14,8 +14,52 @@ with open('ovr.pkl', 'r') as g:
 with open('NT_sim_model_and_fitted_matrix.pkl', 'r') as f:
     similarity_model, similarity_matrix = pickle.load(f)
 
+N = similarity_matrix.todense()
+
+
 with open('NT_titles_and_urls.pkl', 'r') as f:
     title_list, urls = pickle.load(f)
+
+
+def three_best(url):
+    user_text = [parsePDF(url)]
+    user_text = clean_pdf_text(user_text)
+    vector = prediction_model.transform(user_text)
+    top = np.squeeze(np.argsort(ovr.predict_proba(vector))[:,-3:])
+    top_probs = np.squeeze(ovr.predict_proba(vector)[:,top])
+
+    header = "The most probable classifications for this paper are: "
+    class_and_prob = []
+    output = ''
+    for ix in range(1,4):
+        class_and_prob.append('<p>{0} with probability {1}<p>'.format(names[ovr.classes_[top][-ix]], top_probs[-ix]))
+    return header+'\n'+'\n'.join(class_and_prob)
+
+def NT_sim(url):
+    user_text = [parsePDF(url)]
+    user_text = clean_pdf_text(user_text)
+    user_vec = similarity_model.transform(user_text)
+    user_dense = user_vec.todense()
+
+    if np.linalg.norm(user_dense) == 0.0:
+        return "Sorry, this paper couldn't be parsed"
+    else:
+        distances = [cosine(x, user_dense) for x in N]
+        best_score_indices = np.argsort(distances)[:6]
+        best_scores = [np.around(distances[i],3) for i in best_score_indices]
+        best_titles = [title_list[i] for i in best_score_indices]
+        best_urls = [urls[i] for i in best_score_indices]
+
+        header = "<p><b>The five most similar papers from the past year are:</b><p> "
+        sim = []
+
+        for x, y, z in zip(best_titles, best_scores, best_urls):
+            sim.append('<p></p>')
+            sim.append(x)
+            sim.append('<p> Similarity Score: {0} </p>'.format(y))
+            sim.append(z)
+        return header + '\n' + '\n'.join(sim)
+
 
 names = {'AG': 'Algebraic Geometry', 'AT': 'Algebraic Topology',\
          'AP': 'Analysis of PDEs', 'CT': 'Category Theory',\
@@ -51,76 +95,30 @@ def more():
 
 @app.route('/submission_page')
 def submission_page():
-    return '''
-        <form action="/prediction_model" method='POST' >
-            <input type="text" name="user_input" />
-            <input type="submit" />
-        </form>
-        '''
+    return render_template('predict_category_template.html')
 
-@app.route('/find_similar')
-def find_similar():
-    return '''
-        <form action="/similarity_model" method='POST' >
-            <input type="text" name="user_input" />
-            <input type="submit" />
-        </form>
-        '''
+
 # My prediction app
 @app.route('/prediction_model', methods=['POST'] )
 def prediction():
+
     url = (str(request.form['user_input']))
 
-    text = [parsePDF(url)]
-
-    text = clean_pdf_text(text)
-
-    vector = prediction_model.transform(text)
-
-    pred = ovr.predict(vector)
-
-    return pred[0]
+    return three_best(url)
 
 #My similarity app
 @app.route('/similarity_model', methods=['POST'] )
 def similarity():
 
-    N = similarity_matrix.todense()
-
     url = (str(request.form['user_input']))
 
-    user_text = [parsePDF(url)]
-    user_text = clean_pdf_text(user_text)
-    user_vec = similarity_model.transform(user_text)
-    user_dense = user_vec.todense()
+    return NT_sim(url)
 
-    distances = [cosine(x, user_dense) for x in N]
-    best_score_indices = np.argsort(distances)[:6]
-    best_scores = [np.around(distances[i],3) for i in best_score_indices]
-    best_titles = [title_list[i] for i in best_score_indices]
-    best_urls = [urls[i] for i in best_score_indices]
 
-    #return 'The closest papers in the past year to yours are: {0}, {1}, {2}'.format(best_titles[1], best_scores[1], best_urls[1])
-    # print '\n'
-    # for x, y, z in zip(best_titles, best_scores, best_urls):
-    #     print x
-    #     print 'Score: ', y
-    #     print 'URL: ', z
-    #     print '\n'
-    #
-    return best_titles[0]
-
-@app.route('/heatmap')
+@app.route('/visualizations')
 def heatmap():
-    return render_template('heatmap_template.html')
+    return render_template('visualizations_template.html')
 
-@app.route('/roc')
-def roc():
-    return render_template('roc_template.html')
-
-@app.route('/category-sim')
-def sim():
-    return render_template('category-sim_template.html')
 
 
 if __name__ == '__main__':
