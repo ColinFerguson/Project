@@ -1,4 +1,3 @@
-#initial function for getting urls and scraping the arxiv
 import pdfminer
 import requests
 from bs4 import BeautifulSoup
@@ -18,7 +17,7 @@ from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfdevice import PDFDevice
 from pdfminer.layout import LAParams
-from pdfminer.converter import  TextConverter # , XMLConverter, HTMLConverter
+from pdfminer.converter import TextConverter  # XMLConverter, HTMLConverter
 import urllib2
 from urllib2 import Request
 import datetime
@@ -28,13 +27,10 @@ from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
 from cStringIO import StringIO
 import sys
-#reload(sys)
-#sys.setdefaultencoding("utf-8")
 from nltk.stem import WordNetLemmatizer
 import multiprocessing
-#import requesocks
 
-# Define a PDF parser function
+
 def parsePDF(url):
 
     # Open the url provided as an argument to the function and read the content
@@ -57,7 +53,7 @@ def parsePDF(url):
     codec = 'utf-8'
 
     # Create a PDF device object
-    device = TextConverter(rsrcmgr, retstr, codec = codec, laparams = laparams)
+    device = TextConverter(rsrcmgr, retstr, codec=codec, laparams=laparams)
 
     # Create a PDF interpreter object
     interpreter = PDFPageInterpreter(rsrcmgr, device)
@@ -65,8 +61,9 @@ def parsePDF(url):
     # Process each page contained in the document
     for page in PDFPage.create_pages(document):
         interpreter.process_page(page)
-        data =  retstr.getvalue()
+        data = retstr.getvalue()
     return data
+
 
 def parsePDF2(url):
 
@@ -94,7 +91,7 @@ def parsePDF2(url):
         codec = 'utf-8'
 
         # Create a PDF device object
-        device = TextConverter(rsrcmgr, retstr, codec = codec, laparams = laparams)
+        device = TextConverter(rsrcmgr, retstr, codec=codec, laparams=laparams)
 
         # Create a PDF interpreter object
         interpreter = PDFPageInterpreter(rsrcmgr, device)
@@ -102,15 +99,13 @@ def parsePDF2(url):
         # Process each page contained in the document
         for page in PDFPage.create_pages(document):
             interpreter.process_page(page)
-            data =  retstr.getvalue()
-        sl = random.randint(0,30)
-        #print "Time to sleep for {0} seconds".format(sl)
+            data = retstr.getvalue()
+        sl = random.randint(0, 30)
         time.sleep(sl)
         return data, url[0], url[1]
 
     except:
-        x = random.randint(5,15)
-        #print "Didn't work, try again in {0} seconds".format(x)
+        x = random.randint(5, 15)
         time.sleep(x)
         try:
             open = urllib2.urlopen(Request(url[0])).read()
@@ -132,7 +127,8 @@ def parsePDF2(url):
             codec = 'utf-8'
 
             # Create a PDF device object
-            device = TextConverter(rsrcmgr, retstr, codec = codec, laparams = laparams)
+            device = TextConverter(rsrcmgr, retstr, codec=codec,
+                                   laparams=laparams)
 
             # Create a PDF interpreter object
             interpreter = PDFPageInterpreter(rsrcmgr, device)
@@ -140,12 +136,10 @@ def parsePDF2(url):
             # Process each page contained in the document
             for page in PDFPage.create_pages(document):
                 interpreter.process_page(page)
-                data =  retstr.getvalue()
+                data = retstr.getvalue()
             return data, url[0], url[1]
         except:
-            #print "Sorry, can't get this paper"
-            time.sleep(random.randint(5,10))
-
+            time.sleep(random.randint(5, 10))
 
 
 def convert_pdf_to_txt(path):
@@ -162,10 +156,11 @@ def convert_pdf_to_txt(path):
     password = ""
     maxpages = 0
     caching = True
-    pagenos=set()
+    pagenos = set()
 
-    for page in PDFPage.get_pages(fp, pagenos, maxpages=maxpages,\
-                                  password=password,caching=caching, check_extractable=True):
+    for page in PDFPage.get_pages(fp, pagenos, maxpages=maxpages,
+                                  password=password, caching=caching,
+                                  check_extractable=True):
         interpreter.process_page(page)
 
     text = retstr.getvalue()
@@ -175,6 +170,7 @@ def convert_pdf_to_txt(path):
     retstr.close()
     return text
 
+
 def get_text(url):
     '''Input a URL from the arxiv (page of a list of papers), return a list of
     parsed articles (list of strings)
@@ -182,25 +178,22 @@ def get_text(url):
     base_url = url
     r = requests.get(base_url, headers={'User-agent': 'Mozilla/5.0'})
     print r.status_code
-
     soup = BeautifulSoup(r.text, 'html.parser')
-    pdfs = soup.findAll(title = 'Download PDF')
+    pdfs = soup.findAll(title='Download PDF')
     links = [str(pdf).split()[1].strip('href="') for pdf in pdfs]
-    urls = ['http://lanl.arxiv.org'+ link for link in links]
+    urls = ['http://lanl.arxiv.org' + link for link in links]
 
     titles = soup.findAll(class_="list-title")
     title_list = []
     for ix in range(len(titles)):
         title_list.append(titles[ix].text)
-    print r.status_code
-    #return articles, title_list, urls
     return title_list, urls, links, pdfs
 
 
 def get_text2(url):
     '''Input a URL from the arxiv (page of a list of papers), return a list of
-    parsed articles (list of strings).  get_text2 is better than get_text because
-    it implements parallel processing.
+    parsed articles (list of strings).  get_text2 is better than get_text
+    because it implements parallel processing.
     '''
 
     base_url = url
@@ -209,9 +202,9 @@ def get_text2(url):
     print "Status: ", r.status_code
 
     soup = BeautifulSoup(r.text, 'html.parser')
-    pdfs = soup.findAll(title = 'Download PDF')
+    pdfs = soup.findAll(title='Download PDF')
     links = [str(pdf).split()[1].strip('href="') for pdf in pdfs]
-    urls = ['http://lanl.arxiv.org'+ link for link in links]
+    urls = ['http://lanl.arxiv.org' + link for link in links]
     titles = soup.findAll(class_="list-title")
     title_list = []
     for ix in range(len(titles)):
@@ -226,23 +219,23 @@ def get_text2(url):
 
     print "Returned {0} articles".format(len(articles))
     print "Status: ", r.status_code
-    return articles #, title_list, good_urls
-    #return title_list, urls, links, pdfs
-
+    return articles
 
 
 def clean_pdf_text(text):
-    '''Input: list of text documents, each element of the list is a single (long) string
-    Output: slightly cleaned up version, try to get rid of strange characters and short 'words'
+    '''Input: list of text documents, each element of the list is a
+    single (long) string. Output: slightly cleaned up version,
+    try to get rid of strange characters and short 'words'
     '''
     S = set()
     S.update(letter for letter in string.lowercase)
     S.update(letter for letter in string.uppercase)
 #    S.update(digit for digit in string.digits)
-    new_text=[]
+    new_text = []
     for i in range(len(text)):
-        new_text.append([word.lower() for word in text[i].split() if (word[0] in S) and (word[-1] in S)\
-                    and (len(word)>3)])
+        new_text.append([word.lower() for word in text[i].split() if
+                        (word[0] in S) and (word[-1] in S) and
+                         (len(word) > 3)])
 
     for i in range(len(new_text)):
         new_text[i] = ' '.join(new_text[i])
@@ -255,52 +248,61 @@ def math_stop():
     tfidf = TfidfVectorizer(stop_words='english')
     Stop = set()
     Stop.update([word for word in tfidf.get_stop_words()])
-    Stop.update(['theorem', 'denote','like', 'thank', 'lemma', 'proof', 'sum', 'difference','corollary', 'hand', \
-                 'product', 'multiple', 'let', 'group', 'prime', 'log', 'limit', 'cid', 'result', \
-                'main', 'conjecture', 'case', 'suppose', 'function', 'assume', 'follows', \
-                'given', 'define', 'note', 'defined', 'class', 'proposition', 'function', 'set', \
-                 'primes', 'numbers','form', 'integers', 'curves', 'real', 'using', 'following', 'obtain', 'prove',\
-                 'definition', 'large', 'small', 'action', 'define', 'bound', 'sifficiently', 'subject', 'non', 'mathematics'])
+    Stop.update(['theorem', 'denote', 'like', 'thank', 'lemma', 'proof',
+                'sum', 'difference', 'corollary', 'hand',
+                 'product', 'multiple', 'let', 'group',
+                 'prime', 'log', 'limit', 'cid', 'result',
+                 'main', 'conjecture', 'case', 'suppose',
+                 'function', 'assume', 'follows',
+                 'given', 'define', 'note', 'defined', 'class',
+                 'proposition', 'function', 'set',
+                 'primes', 'numbers', 'form', 'integers', 'curves',
+                 'real', 'using', 'following', 'obtain', 'prove',
+                 'definition', 'large', 'small', 'action', 'define',
+                         'bound', 'sifficiently', 'subject', 'non',
+                          'mathematics'])
     return list(Stop)
 
 
 def get_topics(urls, num_topics):
-    '''Input: URL containing links to each document (pdf) in the corpus (i.e. arxiv)
-    Output: the num_topics most important topics from the corpus
+    '''Input: URL containing links to each document (pdf) in the
+    corpus (i.e. arxiv)  Output: the num_topics most important
+    topics from the corpus
     '''
-    print 'flip'
-    stuff = []
+    article_info = []
     for url in urls:
-        stuff.append(get_text(url))
+        article_info.append(get_text(url))
 
     text = []
-    for thing in stuff:
+    for thing in article_info:
         text.extend(thing[0])
     text = clean_pdf_text(text)
 
-    tfidf_math = TfidfVectorizer(max_features=100, stop_words=math_stop(), \
-                    ngram_range=(1, 1), decode_error='ignore')
+    tfidf_math = TfidfVectorizer(max_features=100, stop_words=math_stop(),
+                                 ngram_range=(1, 1), decode_error='ignore')
     M = tfidf_math.fit_transform(text)
 
     feature_names = tfidf_math.get_feature_names()
-    feature_names = [WordNetLemmatizer().lemmatize(word) for word in feature_names]
+    feature_names = [WordNetLemmatizer().lemmatize(word)
+                     for word in feature_names]
     nmf = NMF(n_components=num_topics)
     nmf.fit(M)
     topics = []
     for topic_idx, topic in enumerate(nmf.components_):
-        topics.append((" ".join([feature_names[i] for i in topic.argsort()[:-10 - 1:-1]])))
+        topics.append((" ".join([feature_names[i] for i in
+                                topic.argsort()[:-10 - 1:-1]])))
     return M, topics, text, title_list, urls
 
 
 def get_best_titles(M, index, num_articles, title_list):
-    N=M.todense()
-    Dists=np.zeros((N.shape[0], N.shape[0]))
+    N = M.todense()
+    Dists = np.zeros((N.shape[0], N.shape[0]))
     for ix in range(len(Dists)):
         for jx in range(len(Dists)):
-            Dists[ix, jx]=cosine(N[ix], N[jx])
+            Dists[ix, jx] = cosine(N[ix], N[jx])
     distances = Dists[index]
     best_score_indices = np.argsort(distances)[1:num_articles]
-    best_scores = [np.around(distances[i],3) for i in best_score_indices]
+    best_scores = [np.around(distances[i], 3) for i in best_score_indices]
     best_titles = [title_list[i] for i in best_score_indices]
     return best_titles, best_scores
 
@@ -309,15 +311,18 @@ def three_best(url):
     user_text = [parsePDF(url)]
     user_text = clean_pdf_text(user_text)
     vector = prediction_model.transform(user_text)
-    top = np.squeeze(np.argsort(ovr.predict_proba(vector))[:,-3:])
-    top_probs = np.squeeze(ovr.predict_proba(vector)[:,top])
+    top = np.squeeze(np.argsort(ovr.predict_proba(vector))[:, -3:])
+    top_probs = np.squeeze(ovr.predict_proba(vector)[:, top])
 
     header = "The most probable classifications for this paper are: "
     class_and_prob = []
     output = ''
-    for ix in range(1,4):
-        class_and_prob.append('<p>{0} with probability {1}<p>'.format(names[ovr.classes_[top][-ix]], top_probs[-ix]))
+    for ix in range(1, 4):
+        class_and_prob.append(' <p> {0} with probability \
+                    {1} <p>'.format(names[ovr.classes_[top][-ix]],
+                                    top_probs[-ix]))
     return header+'\n'+'\n'.join(class_and_prob)
+
 
 def NT_sim(url):
     user_text = [parsePDF(url)]
@@ -330,11 +335,12 @@ def NT_sim(url):
     else:
         distances = [cosine(x, user_dense) for x in N]
         best_score_indices = np.argsort(distances)[:6]
-        best_scores = [np.around(distances[i],3) for i in best_score_indices]
+        best_scores = [np.around(distances[i], 3) for i in best_score_indices]
         best_titles = [title_list[i] for i in best_score_indices]
         best_urls = [urls[i] for i in best_score_indices]
 
-        header = "<p><b>The five most similar papers from the past year are:</b><p> "
+        header = "<p><b>The five most similar papers \
+                        from the past year are:</b><p> "
         sim = []
 
         for x, y, z in zip(best_titles, best_scores, best_urls):
@@ -344,22 +350,25 @@ def NT_sim(url):
             sim.append(z)
         return header + '\n' + '\n'.join(sim)
 
-'''Script to scrape a given URL, and return the parsable articles.  Then
-take the good articles (good_arts) and append a label to them.  Iterate this
-over relevant urls to get the dataset.  get_text2 returns triples (text, url, title),
-so this script will make those into 4-tuples with the label on the end.'''
+if __name__=='__main__':
 
-arts = get_text2(url)
-bad_type = 0
-good_arts = []
-for ix in range(len(arts)):
-    if type(arts[ix]) == tuple:
-        good_type += 1
-        good_arts.append(arts[ix])
-    else:
-        bad_type += 1
-print "Good: ", good_type
-print "Good again: ", len(good_arts)
-print "Bad: ", bad_type
-for ix in range(len(good_arts)):
-    good_arts[ix] += (label,)
+    '''Script to scrape a given URL, and return the parsable articles.  Then
+    take the good articles (good_arts) and append a label to them.
+    Iterate this over relevant urls to get the dataset.
+    get_text2 returns triples (text, url, title), so this script will
+    make those into 4-tuples with the label on the end.'''
+
+    arts = get_text2(url)
+    bad_type = 0
+    good_arts = []
+    for ix in range(len(arts)):
+        if type(arts[ix]) == tuple:
+            good_type += 1
+            good_arts.append(arts[ix])
+        else:
+            bad_type += 1
+    print "Good: ", good_type
+    print "Good again: ", len(good_arts)
+    print "Bad: ", bad_type
+    for ix in range(len(good_arts)):
+        good_arts[ix] += (label,)
