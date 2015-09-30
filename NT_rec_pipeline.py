@@ -1,52 +1,46 @@
 import cPickle as pickle
-from test import *
+from math_scraping_and_recommending_functions import *
 
 user_url = input('Please enter a pdf url: ')
 
 dates = []
-for year in ['15','14','13','12']:
-    for i in range(12,0, -1):
+for year in ['15', '14', '13', '12']:
+    for i in range(12, 0,  -1):
         if len(str(i)) == 1:
             dates.append(year+'0'+str(i))
         else:
             dates.append(year+str(i))
-good_dates = dates[3:]
+good_dates = dates[3:]  # Just use the first 9 months of 2015,
+                        # since the rest of the months haven't happened yet
 
 front = 'http://lanl.arxiv.org/list/math.NT/'
 end = '?show=250'
 NT_urls = [front+x+end for x in good_dates]
 
-
-
 NT_names = ['NT_'+date+'.pkl' for date in good_dates]
 
-NT_names_new = ['NT_'+date+'_new.pkl' for date in good_dates]
+NT_tags = [x[:7] for x in NT_names]
 
-small_NT_urls = NT_urls[:9]
-small_NT_names = NT_names_new[:9]
-small_NT_tags = [x[:7] for x in small_NT_names]
+for name, tag in zip(NT_names, NT_tags):
+    with open(name, 'r') as f:
+        tag = pickle.load(f)
 
-for name, tag in zip(small_NT_names, small_NT_tags):
-    with open(name, 'r') as m_un:
-        tag = pickle.load(m_un)
-
-# text = []
-# title_list = []
-# urls = []
-# for tag in small_NT_tags:
-#     for triple in tag:
-#         text.append(triple[0])
-#         urls.append(triple[1])
-#         title_list.append(triple[2])
-
+text = []
+title_list = []
+urls = []
+for tag in NT_tags:
+    for triple in tag:
+        text.append(triple[0])
+        urls.append(triple[1])
+        title_list.append(triple[2])
 
 text = clean_pdf_text(text)
 
-tfidf_math = TfidfVectorizer(max_features=150, stop_words=math_stop(), \
-                    ngram_range=(2, 2), decode_error='ignore')
-M = tfidf_math.fit_transform(text)
+tfidf_NT = TfidfVectorizer(max_features=150, stop_words=math_stop(),
+                           ngram_range=(2, 2), decode_error='ignore')
+M = tfidf_NT.fit_transform(text)
 
-N=M.todense()
+N = M.todense()
 
 user_text = [parsePDF(user_url)]
 user_text = clean_pdf_text(user_text)
@@ -55,7 +49,7 @@ user_dense = user_vec.todense()
 
 distances = [cosine(x, user_dense) for x in N]
 best_score_indices = np.argsort(distances)[:6]
-best_scores = [np.around(distances[i],3) for i in best_score_indices]
+best_scores = [np.around(distances[i], 3) for i in best_score_indices]
 best_titles = [title_list[i] for i in best_score_indices]
 best_urls = [urls[i] for i in best_score_indices]
 
@@ -67,19 +61,20 @@ for x, y, z in zip(best_titles, best_scores, best_urls):
     print 'URL: ', z
     print '\n'
 
-Dists=np.zeros((N.shape[0], N.shape[0]))
-for ix in range(len(Dists)):
-    for jx in range(len(Dists)):
-        Dists[ix, jx]=cosine(N[ix], N[jx])
+# Dists=np.zeros((N.shape[0], N.shape[0]))
+# for ix in range(len(Dists)):
+#     for jx in range(len(Dists)):
+#         Dists[ix, jx]=cosine(N[ix], N[jx])
 
 
-feature_names = tfidf_math.get_feature_names()
+feature_names = tfidf_NT.get_feature_names()
 feature_names = [WordNetLemmatizer().lemmatize(word) for word in feature_names]
 nmf = NMF(n_components=10)
 nmf.fit(M)
 topics = []
 for topic_idx, topic in enumerate(nmf.components_):
-    topics.append((" ".join([feature_names[i] for i in topic.argsort()[:-5 - 1:-1]])))
+    topics.append((" ".join([feature_names[i] for
+                            i in topic.argsort()[:-5 - 1:-1]])))
 
 print 'The major NMF topics from the corpus are: '
 print '\n'
@@ -88,7 +83,8 @@ for topic in topics:
     print '\n'
 
 
-# countvec = CountVectorizer(decode_error='ignore', stop_words='english', max_features=5000, ngram_range=(2,2))
+# countvec = CountVectorizer(decode_error='ignore', stop_words='english',
+#                                max_features=5000, ngram_range=(2,2))
 # CV = countvec.fit_transform(text)
 # vocab=tuple(countvec.vocabulary_)
 # lda_model = lda.LDA(n_topics=10, n_iter=1500)
