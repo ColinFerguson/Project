@@ -259,7 +259,7 @@ def math_stop():
                  'primes', 'numbers', 'form', 'integers', 'curves',
                  'real', 'using', 'following', 'obtain', 'prove',
                  'definition', 'large', 'small', 'action', 'define',
-                         'bound', 'sifficiently', 'subject', 'non',
+                         'bound', 'sufficiently', 'subject', 'non',
                           'mathematics'])
     return list(Stop)
 
