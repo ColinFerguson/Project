@@ -3,27 +3,7 @@ from math_scraping_and_recommending_functions import *
 
 user_url = input('Please enter a pdf url: ')
 
-dates = []
-for year in ['15', '14', '13', '12']:
-    for i in range(12, 0,  -1):
-        if len(str(i)) == 1:
-            dates.append(year+'0'+str(i))
-        else:
-            dates.append(year+str(i))
-good_dates = dates[3:]  # Just use the first 9 months of 2015,
-                        # since the rest of the months haven't happened yet
-
-front = 'http://lanl.arxiv.org/list/math.NT/'
-end = '?show=250'
-NT_urls = [front+x+end for x in good_dates]
-
-NT_names = ['NT_'+date+'.pkl' for date in good_dates]
-
-NT_tags = [x[:7] for x in NT_names]
-
-for name, tag in zip(NT_names, NT_tags):
-    with open(name, 'r') as f:
-        tag = pickle.load(f)
+'''Read in the data as NT_tags'''
 
 text = []
 title_list = []
@@ -38,6 +18,7 @@ text = clean_pdf_text(text)
 
 tfidf_NT = TfidfVectorizer(max_features=150, stop_words=math_stop(),
                            ngram_range=(2, 2), decode_error='ignore')
+
 M = tfidf_NT.fit_transform(text)
 
 N = M.todense()
@@ -60,12 +41,6 @@ for x, y, z in zip(best_titles, best_scores, best_urls):
     print 'Score: ', y
     print 'URL: ', z
     print '\n'
-
-# Dists=np.zeros((N.shape[0], N.shape[0]))
-# for ix in range(len(Dists)):
-#     for jx in range(len(Dists)):
-#         Dists[ix, jx]=cosine(N[ix], N[jx])
-
 
 feature_names = tfidf_NT.get_feature_names()
 feature_names = [WordNetLemmatizer().lemmatize(word) for word in feature_names]
