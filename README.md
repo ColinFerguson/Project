@@ -35,4 +35,5 @@ at how the features change in time will be very interesting.  More data will nee
 that.
 
 All the relevant functions live in math_scraping_and_recommending_functions.py, 
-and the data collection pipeline can be found in the Math_data_collection notebook.
+and the data collection pipeline can be found in the Math_data_collection notebook.  Details about the classification
+ model are in models.py
