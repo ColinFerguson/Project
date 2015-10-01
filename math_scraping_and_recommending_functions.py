@@ -339,36 +339,37 @@ def NT_sim(url):
         best_titles = [title_list[i] for i in best_score_indices]
         best_urls = [urls[i] for i in best_score_indices]
 
-        header = "<p><b>The five most similar papers \
-                        from the past year are:</b><p> "
+        header = "The five most similar papers \
+                        from the past year are: "
         sim = []
 
         for x, y, z in zip(best_titles, best_scores, best_urls):
-            sim.append('<p></p>')
             sim.append(x)
-            sim.append('<p> Similarity Score: {0} </p>'.format(y))
+            sim.append('Distance: {0}'.format(y))
             sim.append(z)
         return header + '\n' + '\n'.join(sim)
 
-if __name__=='__main__':
 
-    '''Script to scrape a given URL, and return the parsable articles.  Then
-    take the good articles (good_arts) and append a label to them.
-    Iterate this over relevant urls to get the dataset.
-    get_text2 returns triples (text, url, title), so this script will
-    make those into 4-tuples with the label on the end.'''
+def scrape(url_list, label, filename):
+    '''Input: List of urls from a specific category to be scraped (i.e. from the arxiv),
+    label corresponding to the category, filename to save the data under
+    Output: 4-tuple of text, url, title, label, pickled into a file.  Be careful
+    not to scrape too quickly and risk getting banned from a site.  Probably good to
+    break url_list into chunks.'''
 
-    arts = get_text2(url)
-    bad_type = 0
-    good_arts = []
-    for ix in range(len(arts)):
-        if type(arts[ix]) == tuple:
-            good_type += 1
-            good_arts.append(arts[ix])
-        else:
-            bad_type += 1
-    print "Good: ", good_type
-    print "Good again: ", len(good_arts)
-    print "Bad: ", bad_type
+    for url in url_list:
+        arts = get_text2(url)
+        bad_type = 0
+        good_arts = []
+        for ix in range(len(arts)):
+            if type(arts[ix]) == tuple:
+                good_type += 1
+                good_arts.append(arts[ix])
+            else:
+                bad_type += 1
+        print "Good: ", good_type  #Don't really need these print statements, but I like to see how things are going
+        print "Bad: ", bad_type
     for ix in range(len(good_arts)):
-        good_arts[ix] += (label,)
+        good_arts[ix] += (label,)  #Add the label to be a target later
+    with open(filename, 'w') as f:
+        pickle.dump(good_arts, f)
