@@ -28,5 +28,11 @@ no vectors are actually close to one another in a dimension so high.  One- and t
 Then the distance between each article is computed (I used cosine similarity, 
 but other distance metrics could be explored), and similar papers are recommended.
 
+Both of the tfidf models use a custom set of math-specific stop words.  There is also code for latent feature
+extraction via NMF and LDA.  That is an avenue I am very excited to explore more fully, but it is
+not currently integrated into the app.  I think that looking
+at how the features change in time will be very interesting.  More data will need to be collected to fully explore
+that.
+
 All the relevant functions live in math_scraping_and_recommending_functions.py, 
 and the data collection pipeline can be found in the Math_data_collection notebook.
