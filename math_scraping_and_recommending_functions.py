@@ -264,10 +264,10 @@ def math_stop():
     return list(Stop)
 
 
-def get_topics(urls, num_topics):
+def get_topics_nmf(urls, num_topics):
     '''Input: URL containing links to each document (pdf) in the
-    corpus (i.e. arxiv)  Output: the num_topics most important
-    topics from the corpus
+    corpus (i.e. arxiv)  Output: the num_topics most important latent
+    topics from the corpus (via NMF)
     '''
     article_info = []
     for url in urls:
@@ -293,8 +293,52 @@ def get_topics(urls, num_topics):
                                 topic.argsort()[:-10 - 1:-1]])))
     return M, topics, text, title_list, urls
 
+def get_topics_lda(urls, num_topics):
+    '''Similar to get_topics_nmf, but using LDA for topic extraction.
+    This method is prefered because LDA is a probabilistic model, and thus
+    you can see that probability of a given text falling into the various topics.
+    This function needs to be cleaned up, right now it is only printing, not returning anything.'''
+
+    article_info = []
+    for url in urls:
+        article_info.append(get_text(url))
+
+    text = []
+    for thing in article_info:
+        text.extend(thing[0])
+    text = clean_pdf_text(text)
+    countvec = CountVectorizer(decode_error='ignore', stop_words=Stop, max_features=5000)
+    CV = countvec.fit_transform(new_text)
+    vocab=tuple(countvec.vocabulary_)
+    lda_model = lda.LDA(n_topics=num_topics, n_iter=1500)
+    lda_model.fit(CV)
+    topic_word = lda_model.topic_word_  # model.components_ also works
+    n_top_words = 8
+    topic_words = []
+    for i, topic_dist in enumerate(topic_word):
+    topic_words.append(np.array(vocab)[np.argsort(topic_dist)][:-n_top_words:-1])
+
+    for i in range(len(topic_words)):  # this gives the topics
+    print ' '.join(topic_words[i])
+    print '\n'
+
+    doc_topic = lda_model.doc_topic_  # This will give the most probable topic for each document
+                                      # (only 10 listed here)
+    topic_most_pr = []
+    for n in range(10):
+        topic_most_pr.append(doc_topic[n].argmax())
+
+    for n in range(10):
+        print "doc: {} topic: {}".format(n, str(topic_words[topic_most_pr[n]]))
+    return
+
+
 
 def get_best_titles(M, index, num_articles, title_list):
+    '''Used for similarity modeling.  Input the tfidf model (M),
+     and the desired number of articles, output the num_articles best matches to the
+     given article.'''
+
     N = M.todense()
     Dists = np.zeros((N.shape[0], N.shape[0]))
     for ix in range(len(Dists)):
@@ -307,17 +351,19 @@ def get_best_titles(M, index, num_articles, title_list):
     return best_titles, best_scores
 
 
-def three_best(url):
+def three_best(url, num_classes=3):
+    '''Input: url of a pdf paper.
+    Output: the num_classes most probable classifications for the given paper'''
     user_text = [parsePDF(url)]
     user_text = clean_pdf_text(user_text)
     vector = prediction_model.transform(user_text)
-    top = np.squeeze(np.argsort(ovr.predict_proba(vector))[:, -3:])
+    top = np.squeeze(np.argsort(ovr.predict_proba(vector))[:, -num_classes:])
     top_probs = np.squeeze(ovr.predict_proba(vector)[:, top])
 
     header = "The most probable classifications for this paper are: "
     class_and_prob = []
     output = ''
-    for ix in range(1, 4):
+    for ix in range(1, num_classes):
         class_and_prob.append(' <p> {0} with probability \
                     {1} <p>'.format(names[ovr.classes_[top][-ix]],
                                     top_probs[-ix]))
@@ -325,6 +371,8 @@ def three_best(url):
 
 
 def NT_sim(url):
+    '''Input: the url of a number theory paper (pdf)
+    Output: the five most similar papers from the corpus'''
     user_text = [parsePDF(url)]
     user_text = clean_pdf_text(user_text)
     user_vec = similarity_model.transform(user_text)
