@@ -1,6 +1,4 @@
 # Project
-Galvanize Project Fall 2015
-
 This document is a work-in-progress.  Please ask if you have questions
 
 The Arxiv is an academic pre-print respository hosted by Cornell University (www.arxiv.org). 
