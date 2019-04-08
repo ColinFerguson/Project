@@ -1,9 +1,10 @@
 # Project
-This document is a work-in-progress.  Please ask if you have questions
+
+Note: the app (www.arxivexplorer.com) is not currently live.
 
 The Arxiv is an academic pre-print respository hosted by Cornell University (www.arxiv.org). 
-The goal of this project is to build a paper recommender using the arxiv as the dataset. 
-The app is currently live at www.arxivexplorer.com.  Please keep trying if the page is down.  The app is running on AWS and thus needs to be restarted a few times per week.  I will try to refresh it as often as possible.
+The goal of this project is to build a recommender system using the arxiv as the dataset. 
+
 
 There are two algorithms integrated into the app. 
 The first is a classification algorithm that predicts the subject classification 
